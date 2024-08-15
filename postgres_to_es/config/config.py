@@ -11,7 +11,5 @@ POSTGRESQL_CONFIG = {
     'port': os.environ.get('SQL_PORT', default=5432),
 }
 
-ELASTICSEARCH_CONFIG = {
-    'host': os.environ.get('ES_HOST', default='localhost'),
-    'port': os.environ.get('ES_PORT', default=9200),
-}
+ELASTIC_HOST = os.environ.get('ES_HOST', default='http://localhost:9200/')
+
