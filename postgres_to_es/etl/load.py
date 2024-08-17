@@ -1,15 +1,10 @@
-from elasticsearch import Elasticsearch
-
-
 class Loader:
     def __init__(self, connection):
         self.connection = connection
 
-    def fw2elastic(self, records):
+    def filmwork2elastic(self, records):
 
-        for row in records:
+        for fw_id in records.keys():
             self.connection.index(
-                index='movies',
-                id=dict(row)['id'],
-                body=dict(row),
+                index="movies", id=fw_id, body=records[fw_id]
             )

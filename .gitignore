@@ -1,3 +1,4 @@
 .idea
 venv
 /postgres_to_es/.env
+/postgres_to_es/storage_dump.json

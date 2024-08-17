@@ -1,35 +1,49 @@
-import psycopg2
-from psycopg2.extras import DictConnection
-from config.config import POSTGRESQL_CONFIG, ELASTIC_HOST
-from etl.extract import Extractor
 from elasticsearch import Elasticsearch
+
+from utilities.configs import *
+from utilities.connection_managers import pg_context
+from utilities.storage import JsonFileStorage, State
+from etl.extract import Extractor
 from etl.load import Loader
-from pprint import pp
+from etl.transform import transform_data
 
 
-pg_con = psycopg2.connect(**POSTGRESQL_CONFIG, connection_factory=DictConnection)
-es_con = Elasticsearch(ELASTIC_HOST)
-
-extractor = Extractor(pg_con)
-loader = Loader(es_con, )
-
-state = '2024-08-15 02:15:00'
+storage = JsonFileStorage(DUMP_PATH)
+state = State(storage)
 
 
-def load_fw():
-    table = 'film_work'
-    fields = ['id', 'rating as imdb_rating', 'title', 'description']
-    records = extractor.produce(table, state, fields)
-    loader.fw2elastic(records)
+with pg_context(POSTGRESQL_CONFIG) as pg_con:
+    es_con = Elasticsearch(ELASTIC_HOST)
+    fw_extractor = Extractor(pg_con, FILM_WORK_TABLE, state)
+    person_extractor = Extractor(pg_con, PERSON_TABLE, state)
+    genre_extractor = Extractor(pg_con, GENRE_TABLE, state)
+    loader = Loader(es_con)
 
+    #while True:
+    try:
+        fw_ids = fw_extractor.produce()
+        records = fw_extractor.merge(fw_ids)
+        loader.filmwork2elastic(transform_data(records))
 
-def load_person():
-    table = 'person'
-    records = extractor.produce(table, state, ['id', 'modified'])
-    person_ids = [record['id'] for record in records]
-    records = extractor.enrich(table, person_ids)
-    person_fw_ids = [record['id'] for record in records]
-    records = extractor.merge(table, person_fw_ids)
-    print(*records)
+        person_ids = person_extractor.produce()
+        person_fw_ids = person_extractor.enrich(person_ids)
+        records = person_extractor.merge(person_fw_ids)
+        loader.filmwork2elastic(transform_data(records))
 
-load_person()
+    except IndexError:
+        print('No new entries.')
+#
+    #    time.sleep(5)
+
+# person_ids = person_extractor.produce()
+# person_fw_ids = person_extractor.enrich(person_ids)
+# records = person_extractor.merge(person_fw_ids)
+# loader.filmwork2elastic(transform_data(records))
+
+# genre_ids = genre_extractor.produce()
+# genre_fw_ids = genre_extractor.enrich(genre_ids)
+# records = genre_extractor.merge(genre_fw_ids)
+# loader.filmwork2elastic(transform_data(records))
+
+# print(person_extractor.state)
+# print(genre_extractor.state)

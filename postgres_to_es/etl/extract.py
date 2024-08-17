@@ -1,6 +1,6 @@
-
-from config.config import POSTGRESQL_CONFIG
-from pprint import pp
+from typing import List
+from utilities.storage import State
+import psycopg2
 
 
 def sql_formatter(code):
@@ -9,41 +9,57 @@ def sql_formatter(code):
 
 
 class Extractor:
-    def __init__(self, connection):
-        self.connection = connection
+    """Класс для получения данных из указанной таблицы PosgreSQL."""
 
-    def produce(self, table, state, fields):
+    def __init__(
+        self,
+        connection: psycopg2.extensions.connection,
+        table: str,
+        state: State,
+    ) -> None:
+        self.connection = connection
+        self.table = table
+        self.state = state
+
+    def produce(self) -> List[str]:
+        """Поиск измененных данных в нужной таблице."""
+
         cursor = self.connection.cursor()
         produce_query = f"""
-        SELECT {', '.join(fields)}
-        FROM content.{table}
-        WHERE modified > '{state}'
-        ORDER BY modified
-        LIMIT 100; 
+        SELECT id, modified
+        FROM content.{self.table}
+        WHERE modified > '{self.state.get_state(self.table)}'
+        ORDER BY modified; 
+        LIMIT 1000
         """
         cursor.execute(produce_query)
         records = cursor.fetchall()
         cursor.close()
 
-        return records
+        self.state.set_state(self.table, records[-1]["modified"])
 
-    def enrich(self, table, m2m_ids):
+        return [record["id"] for record in records]
+
+    def enrich(self, field_ids: List[str]) -> List[str]:
+        """Получение всех many-to-many полей, связанных с измененными данными."""
+
         cursor = self.connection.cursor()
         enrich_query = f"""
-        SELECT fw.id, fw.modified
+        SELECT fw.id
         FROM content.film_work fw
-        LEFT JOIN content.{table}_film_work mfw ON mfw.film_work_id = fw.id
-        WHERE mfw.{table}_id IN ({sql_formatter(m2m_ids)})
-        ORDER BY fw.modified
-        LIMIT 100; 
+        LEFT JOIN content.{self.table}_film_work mfw ON mfw.film_work_id = fw.id
+        WHERE mfw.{self.table}_id IN ({sql_formatter(field_ids)})
+        ORDER BY fw.modified 
         """
         cursor.execute(enrich_query)
         records = cursor.fetchall()
         cursor.close()
 
-        return records
+        return [record["id"] for record in records]
 
-    def merge(self, table, m2m_ids):
+    def merge(self, m2m_ids: List[str]) -> List[tuple]:
+        """Получение всей недостающей информации, нужной для загрузки в документ индекса."""
+
         cursor = self.connection.cursor()
         merge_query = f"""
         SELECT
@@ -51,12 +67,16 @@ class Extractor:
          fw.title, 
          fw.description, 
          fw.rating, 
-         mfw.role, 
+         pfw.role, 
          p.id, 
-         p.full_name
+         p.full_name,
+         g.name
         FROM content.film_work fw
-        LEFT JOIN content.{table}_film_work mfw ON mfw.film_work_id = fw.id
-        LEFT JOIN content.{table} p ON p.id = mfw.{table}_id
+        LEFT JOIN content.person_film_work pfw ON pfw.film_work_id = fw.id
+        LEFT JOIN content.person p ON p.id = pfw.person_id
+        LEFT JOIN content.genre_film_work gfw ON gfw.film_work_id = fw.id
+        LEFT JOIN content.genre g ON g.id = gfw.genre_id
+
         WHERE fw.id IN ({sql_formatter(m2m_ids)}); 
         """
         cursor.execute(merge_query)
@@ -64,23 +84,3 @@ class Extractor:
         cursor.close()
 
         return records
-
-
-#def transform_data(data):
-#    transformed_data = []
-#
-#    for row in data:
-#
-#        # Create a dictionary structure suitable for ES
-#        transformed_data.append({
-#            'id': row['fw_id'],
-#            'imdb_rating': row['rating'],
-#            'genres': {
-#                row['name']
-#            }
-#        })
-#
-#    return transformed_data
-#
-#
-#print(transform_data(data))
