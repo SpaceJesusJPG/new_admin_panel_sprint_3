@@ -3,8 +3,8 @@ import elasticsearch
 
 class Loader:
     def __init__(
-            self,
-            connection: elasticsearch.Elasticsearch,
+        self,
+        connection: elasticsearch.Elasticsearch,
     ):
         self.connection = connection
 

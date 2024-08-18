@@ -15,4 +15,5 @@ POSTGRESQL_CONFIG = {
 ELASTIC_HOST = os.environ.get("ES_HOST", default="http://localhost:9200/")
 
 DUMP_PATH = "storage_dump.json"
-TABLES = ['film_work', 'person', 'genre']
+TABLES = ["film_work", "person", "genre"]
+GENRE_BATCH_SIZE = 100
