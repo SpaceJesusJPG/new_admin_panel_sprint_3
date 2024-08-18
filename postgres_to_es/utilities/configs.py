@@ -1,4 +1,5 @@
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,6 +15,4 @@ POSTGRESQL_CONFIG = {
 ELASTIC_HOST = os.environ.get("ES_HOST", default="http://localhost:9200/")
 
 DUMP_PATH = "storage_dump.json"
-FILM_WORK_TABLE = "film_work"
-PERSON_TABLE = "person"
-GENRE_TABLE = "genre"
+TABLES = ['film_work', 'person', 'genre']

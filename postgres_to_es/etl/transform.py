@@ -1,7 +1,9 @@
 from collections import defaultdict
+from typing import List
 
 
-def transform_data(records):
+def transform_data(records: List[tuple]) -> defaultdict[str, dict[str, list]]:
+    """Трансформирует собранные записи в нужный для Elasticsearch формат."""
     data = defaultdict(
         lambda: {
             "actors_names": [],

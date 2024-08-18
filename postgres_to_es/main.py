@@ -1,49 +1,58 @@
+import time
+from typing import List, Union, Dict
+
 from elasticsearch import Elasticsearch
 
+from transform import transform_data
+
+from etl.extract import Extractor
+from etl.load import Loader
 from utilities.configs import *
 from utilities.connection_managers import pg_context
 from utilities.storage import JsonFileStorage, State
-from etl.extract import Extractor
-from etl.load import Loader
-from etl.transform import transform_data
 
 
-storage = JsonFileStorage(DUMP_PATH)
-state = State(storage)
+class Runner:
+    """Реализация основной логики работы приложения"""
+    def __init__(self, extractors: List[Extractor]) -> None:
+        self.extractors = extractors
+        self.modified = None
+
+    def check_modified(self): #-> Dict[str, Union[List[str], List]]:
+        modified = {}
+        for extractor in self.extractors:
+            modified[extractor.table] = extractor.produce()
 
 
-with pg_context(POSTGRESQL_CONFIG) as pg_con:
-    es_con = Elasticsearch(ELASTIC_HOST)
-    fw_extractor = Extractor(pg_con, FILM_WORK_TABLE, state)
-    person_extractor = Extractor(pg_con, PERSON_TABLE, state)
-    genre_extractor = Extractor(pg_con, GENRE_TABLE, state)
-    loader = Loader(es_con)
 
-    #while True:
-    try:
-        fw_ids = fw_extractor.produce()
-        records = fw_extractor.merge(fw_ids)
-        loader.filmwork2elastic(transform_data(records))
+    #def some_name(self):
+    #    if self.
 
-        person_ids = person_extractor.produce()
-        person_fw_ids = person_extractor.enrich(person_ids)
-        records = person_extractor.merge(person_fw_ids)
-        loader.filmwork2elastic(transform_data(records))
-
-    except IndexError:
-        print('No new entries.')
+# def load_filmwork():
+#     fw_id_ls = extractor.produce()
+#     records = fw_extractor.merge(fw_id_ls)
+#     filmwork2elastic(transform_data(records))
 #
-    #    time.sleep(5)
+#
+# def load_person():
+#     person_id_ls = s_extractor.produce()
+#     person_fw_id_ls = p_extractor.enrich(person_id_ls)
+#     records = p_extractor.merge(person_fw_id_ls)
+#     filmwork2elastic(transform_data(records))
+#
+#
+# def load_genre():
+#     genre_id_ls = g_extractor.produce()
+#     genre_fw_id_ls = g_extractor.enrich(genre_id_ls)
+#     records = g_extractor.merge(genre_fw_id_ls)
+#     filmwork2elastic(transform_data(records))
 
-# person_ids = person_extractor.produce()
-# person_fw_ids = person_extractor.enrich(person_ids)
-# records = person_extractor.merge(person_fw_ids)
-# loader.filmwork2elastic(transform_data(records))
 
-# genre_ids = genre_extractor.produce()
-# genre_fw_ids = genre_extractor.enrich(genre_ids)
-# records = genre_extractor.merge(genre_fw_ids)
-# loader.filmwork2elastic(transform_data(records))
+if __name__ == "__main__":
+    with pg_context(POSTGRESQL_CONFIG) as pg_con:
+        storage = JsonFileStorage(DUMP_PATH)
+        state = State(storage)
+        extractors = [Extractor(pg_con, table, state) for table in TABLES]
+        es_con = Elasticsearch(ELASTIC_HOST)
+        loader = Loader(es_con)
 
-# print(person_extractor.state)
-# print(genre_extractor.state)

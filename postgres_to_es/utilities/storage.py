@@ -1,7 +1,6 @@
 import json
-from json.decoder import JSONDecodeError
-from typing import Any, Dict
 from datetime import datetime
+from typing import Any, Dict
 
 
 class JsonFileStorage:
@@ -15,13 +14,13 @@ class JsonFileStorage:
 
     def save_state(self, state: Dict[str, str]) -> None:
         """Сохранить состояние в хранилище."""
-        with open(self.file_path, 'w+') as file:
+        with open(self.file_path, "w+") as file:
             json.dump(state, file)
 
     def retrieve_state(self) -> Dict[str, str]:
         """Получить состояние из хранилища."""
         try:
-            with open(self.file_path, 'r') as file:
+            with open(self.file_path, "r") as file:
                 data = json.load(file)
                 return data
         except FileNotFoundError:
@@ -37,10 +36,10 @@ class State:
     def set_state(self, key: str, value: datetime) -> None:
         """Установить состояние для определённого ключа."""
         state = self.storage.retrieve_state()
-        state[key] = value.strftime('%Y-%m-%d %H:%M:%S.%f')
+        state[key] = value.strftime("%Y-%m-%d %H:%M:%S.%f")
         self.storage.save_state(state)
 
-    def get_state(self, key: str) -> datetime:
+    def get_state(self, key: str) -> Any:
         """Получить состояние по определённому ключу."""
         state = self.storage.retrieve_state()
         try:
