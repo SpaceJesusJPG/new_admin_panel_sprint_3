@@ -13,3 +13,6 @@ class Loader:
             self.connection.index(
                 index="movies", id=fw_id, body=records[fw_id]
             )
+
+    def ping_connection(self):
+        return self.connection.ping()
