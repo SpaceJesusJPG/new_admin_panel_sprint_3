@@ -6,7 +6,7 @@ from elasticsearch import Elasticsearch
 
 from backoff import backoff
 from configs import GENRE_BATCH_SIZE, POSTGRESQL_CONFIG, ELASTIC_HOST, TABLES
-from connection_managers import pg_context
+from connection_managers import connection_context
 from extract import Extractor
 from load import Loader
 from transform import transform_data
@@ -66,25 +66,15 @@ class Runner:
 
     @backoff(logging)
     def run_loop(self):
-        with (
-            pg_context(POSTGRESQL_CONFIG) as pg_con,
-            Elasticsearch(ELASTIC_HOST) as es_con,
-        ):
-            self.extractors = {
-                table: Extractor(pg_con, table, self.state) for table in TABLES
-            }
-            self.loader = Loader(es_con)
-
-            while True:
-                new_modified = self.extract_new_modified()
-                if new_modified["film_work"]:
-                    logging.info("Получено обновление таблицы film_work")
-                    self.run_etl_filmwork(new_modified["film_work"])
-                if new_modified["person"]:
-                    logging.info("Получено обновление таблицы person")
-                    self.run_etl_person(new_modified["person"])
-                if new_modified["genre"]:
-                    logging.info("Получено обновление таблицы genre")
-                    self.run_etl_genre(new_modified["genre"])
-
-                time.sleep(1)
+        while True:
+            new_modified = self.extract_new_modified()
+            if new_modified["film_work"]:
+                logging.info("Получено обновление таблицы film_work")
+                self.run_etl_filmwork(new_modified["film_work"])
+            if new_modified["person"]:
+                logging.info("Получено обновление таблицы person")
+                self.run_etl_person(new_modified["person"])
+            if new_modified["genre"]:
+                logging.info("Получено обновление таблицы genre")
+                self.run_etl_genre(new_modified["genre"])
+            time.sleep(1)

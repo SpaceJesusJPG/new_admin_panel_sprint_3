@@ -1,7 +1,7 @@
 from typing import List, Any
 
 import psycopg2
-
+from utilities.connection_managers import PGClient
 from utilities.storage import State
 
 
@@ -11,11 +11,11 @@ class Extractor:
 
     def __init__(
         self,
-        connection: psycopg2.extensions.connection,
+        db_client: PGClient,
         table: str,
         state: State,
     ) -> None:
-        self.connection = connection
+        self.db_client = db_client
         self.table = table
         self.state = state
 
@@ -41,16 +41,13 @@ class Extractor:
 
     def produce(self) -> list[tuple[Any, ...]]:
         """Поиск последних измененных данных в нужной таблице."""
-        cursor = self.connection.cursor()
         produce_query = f"""
         SELECT id, modified
         FROM content.{self.table}
         WHERE modified > '{self.state.get_state(self.table)}'
         ORDER BY modified;
         """
-        cursor.execute(produce_query)
-        records = cursor.fetchall()
-        cursor.close()
+        records = self.db_client.execute_query(produce_query)
         self.update_state(records)
         return records
 
@@ -59,7 +56,6 @@ class Extractor:
     ) -> list[tuple[Any, ...]]:
         """Получение всех many-to-many полей, связанных
         с измененными данными."""
-        cursor = self.connection.cursor()
         enrich_query = f"""
         SELECT fw.id
         FROM content.film_work fw
@@ -69,16 +65,13 @@ class Extractor:
         ORDER BY fw.modified
         LIMIT {self.value_or_null(batch_size)} OFFSET {offset};
         """
-        cursor.execute(enrich_query)
-        records = cursor.fetchall()
-        cursor.close()
+        records = self.db_client.execute_query(enrich_query)
         return records
 
     def merge(self, m2m_id_ls: list[tuple[Any, ...]]) -> List[tuple]:
         """Получение всей недостающей информации,
         нужной для загрузки данных в документ
         индекса Elasticsearch."""
-        cursor = self.connection.cursor()
         merge_query = f"""
         SELECT
           fw.id as fw_id,
@@ -96,7 +89,5 @@ class Extractor:
         LEFT JOIN content.genre g ON g.id = gfw.genre_id
         WHERE fw.id IN ({self.get_id_str(m2m_id_ls)});
         """
-        cursor.execute(merge_query)
-        records = cursor.fetchall()
-        cursor.close()
+        records = self.db_client.execute_query(merge_query)
         return records
