@@ -1,7 +1,6 @@
 from typing import List, Any
 
-import psycopg2
-from utilities.connection_managers import PGClient
+from utilities.pg_client import PGClient
 from utilities.storage import State
 
 
@@ -10,10 +9,10 @@ class Extractor:
     из указанной таблицы PosgreSQL."""
 
     def __init__(
-        self,
-        db_client: PGClient,
-        table: str,
-        state: State,
+            self,
+            db_client: PGClient,
+            table: str,
+            state: State,
     ) -> None:
         self.db_client = db_client
         self.table = table
@@ -27,17 +26,15 @@ class Extractor:
 
     @staticmethod
     def get_id_str(records):
+        """Трансформация списка id в формат, подходящий для вставки в запрос SQL"""
         id_ls = [record["id"] for record in records]
         id_str = ", ".join(f"'{s}'" for s in id_ls)
         return id_str
 
     def update_state(self, records):
-        try:
-            last_modified_dt = records[-1]["modified"]
-            self.state.set_state(self.table, last_modified_dt)
-
-        except IndexError:
-            pass
+        """Сохранение даты и времени последней полученной записи."""
+        last_modified_dt = records[-1]["modified"]
+        self.state.set_state(self.table, last_modified_dt)
 
     def produce(self) -> list[tuple[Any, ...]]:
         """Поиск последних измененных данных в нужной таблице."""
@@ -47,12 +44,11 @@ class Extractor:
         WHERE modified > '{self.state.get_state(self.table)}'
         ORDER BY modified;
         """
-        records = self.db_client.execute_query(produce_query)
-        self.update_state(records)
+        records = self.db_client.execute_pg_query(produce_query)
         return records
 
     def enrich(
-        self, modified_id_ls: list[tuple[Any, ...]], batch_size=None, offset=0
+            self, modified_id_ls: list[tuple[Any, ...]], batch_size=None, offset=0
     ) -> list[tuple[Any, ...]]:
         """Получение всех many-to-many полей, связанных
         с измененными данными."""
@@ -65,7 +61,7 @@ class Extractor:
         ORDER BY fw.modified
         LIMIT {self.value_or_null(batch_size)} OFFSET {offset};
         """
-        records = self.db_client.execute_query(enrich_query)
+        records = self.db_client.execute_pg_query(enrich_query)
         return records
 
     def merge(self, m2m_id_ls: list[tuple[Any, ...]]) -> List[tuple]:
@@ -89,5 +85,5 @@ class Extractor:
         LEFT JOIN content.genre g ON g.id = gfw.genre_id
         WHERE fw.id IN ({self.get_id_str(m2m_id_ls)});
         """
-        records = self.db_client.execute_query(merge_query)
+        records = self.db_client.execute_pg_query(merge_query)
         return records

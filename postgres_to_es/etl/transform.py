@@ -43,9 +43,9 @@ def transform_data(records: List[tuple]) -> defaultdict[str, dict[str, list]]:
             "name": person_name,
         }
         if (
-            dict_person not in data[fw_id]["actors"]
-            and dict_person not in data[fw_id]["writers"]
-            and dict_person not in data[fw_id]["directors"]
+                dict_person not in data[fw_id]["actors"]
+                and dict_person not in data[fw_id]["writers"]
+                and dict_person not in data[fw_id]["directors"]
         ) and person_id is not None:
             data[fw_id][role + "s"].append(dict_person)
             data[fw_id][role + "s_names"].append(person_name)
