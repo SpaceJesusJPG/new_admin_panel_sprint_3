@@ -22,6 +22,7 @@ if __name__ == "__main__":
     storage = JsonFileStorage(DUMP_PATH)
     state = State(storage)
     pg_client = PGClient(POSTGRESQL_CONFIG)
+    pg_client.validate_config()
     extractors = {table: Extractor(pg_client, table, state) for table in TABLES}
     loader = Loader(ELASTIC_HOST)
     runner = Runner(state, loader, extractors)

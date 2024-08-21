@@ -6,6 +6,8 @@ from psycopg2.extras import DictConnection
 
 from utilities.backoff import backoff
 from utilities.configs import POSTGRESQL_CONFIG
+from pydantic import ValidationError
+from utilities.configs import PostgresConfig
 
 
 class PGClient:
@@ -14,11 +16,19 @@ class PGClient:
     def __init__(self, pg_config):
         self.pg_config = pg_config
 
+    def validate_config(self):
+        self.pg_config = PostgresConfig(**self.pg_config)
+
     @contextmanager
     def connect(self) -> psycopg2.extensions.cursor:
         """Менеджер контекста подключения к PostgreSQL"""
         pg_con = psycopg2.connect(
-            **POSTGRESQL_CONFIG, connection_factory=DictConnection
+            host=self.pg_config.host,
+            port=self.pg_config.port,
+            user=self.pg_config.user,
+            password=self.pg_config.password,
+            dbname=self.pg_config.dbname,
+            connection_factory=DictConnection,
         )
         cur = pg_con.cursor()
         try:
