@@ -23,7 +23,6 @@ class Runner:
 
     def run_etl_filmwork(self, new_modified_ls: List[List[Any]]):
         """Трансформация и загрузка данных таблицы film_work."""
-
         extractor = self.extractors["film_work"]
         records = extractor.merge(new_modified_ls)
         self.loader.filmwork2elastic(transform_data(records))

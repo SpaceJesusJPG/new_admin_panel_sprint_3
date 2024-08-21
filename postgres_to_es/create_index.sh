@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Ожидание доступности Elasticsearch.
-until curl -s -u elastic:your_password_here http://elastic:9200 > /dev/null; do
+until curl http://elastic:9200 > /dev/null; do
   echo "Waiting for Elasticsearch..."
   sleep 5
 done
