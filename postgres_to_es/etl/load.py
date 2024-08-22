@@ -5,6 +5,7 @@ from utilities.backoff import backoff
 
 class Loader:
     """Обработка подключения к Elasticsearch и bulk-загрузки данных в индекс."""
+
     def __init__(self, host: str):
         self.host = host
 

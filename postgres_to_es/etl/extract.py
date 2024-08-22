@@ -9,10 +9,10 @@ class Extractor:
     из указанной таблицы PosgreSQL."""
 
     def __init__(
-            self,
-            db_client: PGClient,
-            table: str,
-            state: State,
+        self,
+        db_client: PGClient,
+        table: str,
+        state: State,
     ) -> None:
         self.db_client = db_client
         self.table = table
@@ -48,7 +48,7 @@ class Extractor:
         return records
 
     def enrich(
-            self, modified_id_ls: list[tuple[Any, ...]], batch_size=None, offset=0
+        self, modified_id_ls: list[tuple[Any, ...]], batch_size=None, offset=0
     ) -> list[tuple[Any, ...]]:
         """Получение всех many-to-many полей, связанных
         с измененными данными."""
