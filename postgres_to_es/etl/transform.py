@@ -1,13 +1,13 @@
 import uuid
 from collections import defaultdict
-from pydantic import BaseModel
 from typing import List
-from datetime import datetime
+
+from pydantic import BaseModel
+
 
 class MovieIndex(BaseModel):
     id: uuid
     imdb_rating: float
-    #genres: List[]
 
 
 def transform_data(records: List[tuple]) -> defaultdict[str, dict[str, list]]:

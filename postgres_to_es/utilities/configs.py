@@ -1,7 +1,7 @@
 import os
 
-from pydantic import BaseModel, Field, PositiveInt
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field, PositiveInt
 
 load_dotenv()
 

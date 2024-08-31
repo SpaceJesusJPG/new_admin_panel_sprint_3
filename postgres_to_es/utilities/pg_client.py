@@ -5,8 +5,6 @@ import psycopg2
 from psycopg2.extras import DictConnection
 
 from utilities.backoff import backoff
-from utilities.configs import POSTGRESQL_CONFIG
-from pydantic import ValidationError
 from utilities.configs import PostgresConfig
 
 
